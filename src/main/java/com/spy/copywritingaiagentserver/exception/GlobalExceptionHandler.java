@@ -1,8 +1,8 @@
-package com.spy.server.exception;
+package com.spy.copywritingaiagentserver.exception;
 
-import com.spy.server.common.BaseResponse;
-import com.spy.server.common.ErrorCode;
-import com.spy.server.utils.ResultUtil;
+import com.spy.copywritingaiagentserver.common.BaseResponse;
+import com.spy.copywritingaiagentserver.common.ErrorCode;
+import com.spy.copywritingaiagentserver.utils.ResultUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;

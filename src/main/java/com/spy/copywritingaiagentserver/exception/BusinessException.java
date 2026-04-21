@@ -1,6 +1,6 @@
-package com.spy.server.exception;
+package com.spy.copywritingaiagentserver.exception;
 
-import com.spy.server.common.ErrorCode;
+import com.spy.copywritingaiagentserver.common.ErrorCode;
 import lombok.Getter;
 
 @Getter

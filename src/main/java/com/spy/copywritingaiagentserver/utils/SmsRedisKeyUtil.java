@@ -1,4 +1,4 @@
-package com.spy.server.utils;
+package com.spy.copywritingaiagentserver.utils;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;

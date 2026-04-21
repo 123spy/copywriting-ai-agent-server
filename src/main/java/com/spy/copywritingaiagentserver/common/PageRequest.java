@@ -1,6 +1,6 @@
-package com.spy.server.common;
+package com.spy.copywritingaiagentserver.common;
 
-import com.spy.server.constant.CommonConstant;
+import com.spy.copywritingaiagentserver.constant.CommonConstant;
 import lombok.Data;
 
 @Data

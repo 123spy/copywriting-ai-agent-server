@@ -1,4 +1,4 @@
-package com.spy.server.constant;
+package com.spy.copywritingaiagentserver.constant;
 
 /**
  * 通用常量

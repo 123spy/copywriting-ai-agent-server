@@ -1,4 +1,4 @@
-package com.spy.server.model.vo;
+package com.spy.copywritingaiagentserver.model.vo;
 
 import lombok.Data;
 
@@ -7,6 +7,7 @@ import java.util.Date;
 
 /**
  * 用户表
+ *
  * @TableName user
  */
 @Data

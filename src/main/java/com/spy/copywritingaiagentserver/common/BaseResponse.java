@@ -1,4 +1,4 @@
-package com.spy.server.common;
+package com.spy.copywritingaiagentserver.common;
 
 import lombok.Data;
 
@@ -20,7 +20,7 @@ public class BaseResponse<T> implements Serializable {
     }
 
     public BaseResponse(int code, T data) {
-        this(code, data,null);
+        this(code, data, null);
     }
 
     public BaseResponse(ErrorCode errorCode) {

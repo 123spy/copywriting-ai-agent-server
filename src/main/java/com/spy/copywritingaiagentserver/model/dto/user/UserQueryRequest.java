@@ -1,6 +1,6 @@
-package com.spy.server.model.dto.user;
+package com.spy.copywritingaiagentserver.model.dto.user;
 
-import com.spy.server.common.PageRequest;
+import com.spy.copywritingaiagentserver.common.PageRequest;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -8,6 +8,7 @@ import java.util.Date;
 
 /**
  * 用户表
+ *
  * @TableName user
  */
 @Data

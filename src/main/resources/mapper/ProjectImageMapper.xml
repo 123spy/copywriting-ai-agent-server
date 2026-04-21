@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.spy.copywritingaiagentserver.mapper.ProjectImageMapper">
+
+    <resultMap id="BaseResultMap" type="com.spy.copywritingaiagentserver.model.domain.ProjectImage">
+            <id property="id" column="id" />
+            <result property="projectId" column="projectId" />
+            <result property="resultId" column="resultId" />
+            <result property="imageUrl" column="imageUrl" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,projectId,resultId,imageUrl
+    </sql>
+</mapper>

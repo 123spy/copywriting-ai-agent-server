@@ -1,174 +1,154 @@
 package com.spy.copywritingaiagentserver.controller;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.spy.copywritingaiagentserver.annotation.AuthCheck;
+import com.spy.copywritingaiagentserver.ai.AgentFlow;
+import com.spy.copywritingaiagentserver.ai.model.*;
 import com.spy.copywritingaiagentserver.common.BaseResponse;
-import com.spy.copywritingaiagentserver.common.DeleteRequest;
 import com.spy.copywritingaiagentserver.common.ErrorCode;
-import com.spy.copywritingaiagentserver.constant.UserConstant;
 import com.spy.copywritingaiagentserver.exception.BusinessException;
+import com.spy.copywritingaiagentserver.model.ProjectStatus;
+import com.spy.copywritingaiagentserver.model.domain.ContentProject;
+import com.spy.copywritingaiagentserver.model.domain.ContentResult;
 import com.spy.copywritingaiagentserver.model.domain.User;
-import com.spy.copywritingaiagentserver.model.dto.user.*;
-import com.spy.copywritingaiagentserver.model.vo.UserVO;
+import com.spy.copywritingaiagentserver.service.ContentProjectService;
+import com.spy.copywritingaiagentserver.service.ContentResultService;
 import com.spy.copywritingaiagentserver.service.UserService;
 import com.spy.copywritingaiagentserver.utils.ResultUtil;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/contentProject")
 @Slf4j
 public class ContentProjectController {
 
     @Resource
+    private ContentProjectService contentProjectService;
+
+    @Resource
+    private AgentFlow agentFlow;
+
+    @Resource
     private UserService userService;
 
+    @Resource
+    private ContentResultService contentResultService;
 
-    @PostMapping("/register")
-    public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest, HttpServletRequest request) {
-        if (userRegisterRequest == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        String userAccount = userRegisterRequest.getUserAccount();
-        String userPassword = userRegisterRequest.getUserPassword();
-
-        if (StringUtils.isAnyBlank(userAccount, userPassword)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        long result = userService.userRegister(userAccount, userPassword);
-        log.info("用户注册成功：用户账号={}，用户ID={}", userAccount, result);
-        return ResultUtil.success(result);
-    }
-
-    @PostMapping("/login")
-    public BaseResponse<UserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
-        if (userLoginRequest == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+    @PostMapping("/create")
+    @Transactional(rollbackFor = Exception.class)
+    public BaseResponse<FinalPostResult> create(@RequestBody UserRequirement userRequirement, HttpServletRequest request) {
+        if (userRequirement == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
         }
 
-        String userAccount = userLoginRequest.getUserAccount();
-        String userPassword = userLoginRequest.getUserPassword();
-
-        if (StringUtils.isAnyBlank(userAccount, userPassword)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        User user = userService.userLogin(userAccount, userPassword, request);
-        log.info("账号密码登录成功：用户账号={}，用户ID={}", userAccount, user.getId());
-        UserVO userVO = userService.getUserVO(user);
-        return ResultUtil.success(userVO);
-    }
-
-    @PostMapping("/logout")
-    public BaseResponse<Integer> userLogout(HttpServletRequest request) {
-        if (request == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        User loginUser = userService.getLoginUserAllowNull(request);
-        int result = userService.userLogout(request);
-        log.info("用户退出登录成功：用户ID={}", loginUser == null ? null : loginUser.getId());
-        return ResultUtil.success(result);
-    }
-
-    @GetMapping("/get/login")
-    public BaseResponse<UserVO> getLoginUser(HttpServletRequest request) {
-        User user = userService.getLoginUser(request);
-        return ResultUtil.success(userService.getUserVO(user));
-    }
-
-    @PostMapping("/add")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Long> addUser(@RequestBody UserAddRequest userAddRequest) {
-        if (userAddRequest == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        Long id = userService.addUser(userAddRequest);
-        return ResultUtil.success(id);
-    }
-
-    @PostMapping("/delete")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Boolean> deleteUser(@RequestBody DeleteRequest deleteRequest) {
-        if (deleteRequest == null || deleteRequest.getId() <= 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        boolean result = userService.removeById(deleteRequest.getId());
-        if (!result) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        return ResultUtil.success(true);
-    }
-
-    @PostMapping("/update")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest, HttpServletRequest request) {
-        if (userUpdateRequest == null || userUpdateRequest.getId() <= 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        User oldUser = userService.getById(userUpdateRequest.getId());
-        if (oldUser == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        Boolean result = userService.updateUser(userUpdateRequest);
-        return ResultUtil.success(result);
-    }
-
-    @GetMapping("/get")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<User> getUserById(long id, HttpServletRequest request) {
-        if (id <= 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        User user = userService.getById(id);
-        if (user == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
-        }
-        return ResultUtil.success(user);
-    }
-
-    @GetMapping("/get/vo")
-    public BaseResponse<UserVO> getUserVOById(long id, HttpServletRequest request) {
-        if (id <= 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        User user = userService.getById(id);
-        if (user == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
-        }
-        return ResultUtil.success(userService.getUserVO(user));
-    }
-
-    @PostMapping("/list/page")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Page<User>> listUserByPage(@RequestBody UserQueryRequest userQueryRequest, HttpServletRequest request) {
-        if (userQueryRequest == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        int current = userQueryRequest.getCurrent();
-        int pageSize = userQueryRequest.getPageSize();
-        Page<User> userPage = userService.page(new Page<>(current, pageSize), userService.getQueryWrapper(userQueryRequest));
-        return ResultUtil.success(userPage);
-    }
-
-    @PostMapping("/list/page/vo")
-    public BaseResponse<Page<UserVO>> listUserVOByPage(@RequestBody UserQueryRequest userQueryRequest, HttpServletRequest request) {
-        if (userQueryRequest == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        Page<UserVO> userVOPage = userService.listUserVOByPage(userQueryRequest);
-        return ResultUtil.success(userVOPage);
-    }
-
-    @PostMapping("/edit")
-    public BaseResponse<Boolean> editUserInfo(@RequestBody UserUpdateMyInfoRequest userUpdateMyInfoRequest, HttpServletRequest request) {
-        if (userUpdateMyInfoRequest == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
         User loginUser = userService.getLoginUser(request);
-        userUpdateMyInfoRequest.setId(loginUser.getId());
-        Boolean result = userService.updateUserMyInfo(userUpdateMyInfoRequest);
-        return ResultUtil.success(result);
+
+        // 校验参数
+        String platform = userRequirement.getPlatform();
+        if (StringUtils.isBlank(platform)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "平台为空");
+        }
+
+        String topic = userRequirement.getTopic();
+        if (StringUtils.isBlank(topic)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "主题为空");
+        }
+
+        String audience = userRequirement.getAudience();
+        if (StringUtils.isBlank(audience)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户群体为空");
+        }
+
+        String tone = userRequirement.getTone();
+        if (StringUtils.isBlank(tone)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "风格为空");
+        }
+
+        String productInfo = userRequirement.getProductInfo();
+        if (StringUtils.isBlank(productInfo)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "产品信息为空");
+        }
+
+        String requirement = userRequirement.getRequirement();
+        if (StringUtils.isBlank(requirement)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户需求为空");
+        }
+
+        // 存一下数据库ContentProject
+        ContentProject contentProject = new ContentProject();
+        contentProject.setUserId(loginUser.getId());
+        contentProject.setProjectName(loginUser.getUserName() + "在" + platform + "的" + topic + "文案");
+        contentProject.setPlatform(platform);
+        contentProject.setTopic(topic);
+        contentProject.setAudience(audience);
+        contentProject.setTone(tone);
+        // 初始不设置，这个会在后续生成的。
+        contentProject.setNormalizedStyle(null);
+        contentProject.setProductInfo(productInfo);
+        contentProject.setRequirement(requirement);
+        // 默认设置为0
+        contentProject.setStatus(ProjectStatus.RUNNING.getCode());
+
+        boolean contentProjectSaveResult = contentProjectService.save(contentProject);
+        if (!contentProjectSaveResult) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "项目创建失败");
+        }
+        FinalPostResult finalPostResult = null;
+        try {
+            finalPostResult = agentFlow.generate(userRequirement);
+            if (finalPostResult == null) {
+                throw new BusinessException(ErrorCode.OPERATION_ERROR);
+            }
+            contentProject.setStatus(ProjectStatus.SUCCESS.getCode());
+            boolean contentProjectUpdateResult = contentProjectService.updateById(contentProject);
+            if (!contentProjectUpdateResult) {
+                throw new BusinessException(ErrorCode.OPERATION_ERROR);
+            }
+        } catch (Exception e) {
+            // 捕获异常
+            contentProject.setStatus(ProjectStatus.FAILED.getCode());
+            boolean contentProjectUpdateResult = contentProjectService.updateById(contentProject);
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "文案生成失败");
+        }
+
+        RequirementParseResult requirementParseResult = finalPostResult.getRequirementParseResult();
+        ContentPlanResult contentPlanResult = finalPostResult.getContentPlanResult();
+        CopywritingResult copywritingResult = finalPostResult.getCopywritingResult();
+        VisualPromptResult visualPromptResult = finalPostResult.getVisualPromptResult();
+        String imageUrl = finalPostResult.getImageUrl();
+        ReviewResult reviewResult = finalPostResult.getReviewResult();
+
+        // 存一下数据库ContentResult
+        ContentResult contentResult = new ContentResult();
+//        contentResult.setId();
+        contentResult.setProjectId(contentProject.getId());
+
+        // copywritingAgent实现这部分
+        contentResult.setTitle(copywritingResult.getTitle());
+        contentResult.setOpeningHook(copywritingResult.getOpeningHook());
+        contentResult.setBody(copywritingResult.getBody());
+        contentResult.setCta(copywritingResult.getCta());
+
+        // visualPromptAgent
+        contentResult.setImagePrompt(visualPromptResult.getImagePrompt());
+
+        // reviewAgent
+        contentResult.setReviewPass(reviewResult.getPass() ? 1 : 0);
+        contentResult.setTitleScore(BigDecimal.valueOf(reviewResult.getTitleScore()));
+        contentResult.setBodyScore(BigDecimal.valueOf(reviewResult.getBodyScore()));
+        contentResult.setImagePromptScore(BigDecimal.valueOf(reviewResult.getImagePromptScore()));
+        contentResult.setOverallScore(BigDecimal.valueOf(reviewResult.getOverallScore()));
+        contentResult.setReviewFeedback(reviewResult.getFeedback());
+        boolean contentResultSaveResult = contentResultService.save(contentResult);
+        if(!contentResultSaveResult) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "结果保存失败");
+        }
+        return ResultUtil.success(finalPostResult);
     }
+
 }

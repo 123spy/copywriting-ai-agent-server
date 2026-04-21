@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.spy.copywritingaiagentserver.mapper.ContentResultMapper">
+
+    <resultMap id="BaseResultMap" type="com.spy.copywritingaiagentserver.model.domain.ContentResult">
+            <id property="id" column="id" />
+            <result property="projectId" column="projectId" />
+            <result property="title" column="title" />
+            <result property="openingHook" column="openingHook" />
+            <result property="body" column="body" />
+            <result property="cta" column="cta" />
+            <result property="imagePrompt" column="imagePrompt" />
+            <result property="reviewPass" column="reviewPass" />
+            <result property="titleScore" column="titleScore" />
+            <result property="bodyScore" column="bodyScore" />
+            <result property="imagePromptScore" column="imagePromptScore" />
+            <result property="overallScore" column="overallScore" />
+            <result property="reviewFeedback" column="reviewFeedback" />
+            <result property="createTime" column="createTime" />
+            <result property="updateTime" column="updateTime" />
+            <result property="isDelete" column="isDelete" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,projectId,title,openingHook,body,cta,
+        imagePrompt,reviewPass,titleScore,bodyScore,imagePromptScore,
+        overallScore,reviewFeedback,createTime,updateTime,isDelete
+    </sql>
+</mapper>

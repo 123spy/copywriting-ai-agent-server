@@ -1,4 +1,4 @@
-package com.spy.server.model.dto.user;
+package com.spy.copywritingaiagentserver.model.dto.user;
 
 import lombok.Data;
 

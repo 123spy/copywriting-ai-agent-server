@@ -1,7 +1,8 @@
-package com.spy.server.utils;
+package com.spy.copywritingaiagentserver.utils;
 
-import com.spy.server.common.BaseResponse;
-import com.spy.server.common.ErrorCode;
+
+import com.spy.copywritingaiagentserver.common.BaseResponse;
+import com.spy.copywritingaiagentserver.common.ErrorCode;
 
 public class ResultUtil {
 

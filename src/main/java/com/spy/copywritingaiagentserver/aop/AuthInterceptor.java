@@ -1,11 +1,12 @@
-package com.spy.server.aop;
+package com.spy.copywritingaiagentserver.aop;
 
-import com.spy.server.annotation.AuthCheck;
-import com.spy.server.common.ErrorCode;
-import com.spy.server.common.UserRoleEnum;
-import com.spy.server.exception.BusinessException;
-import com.spy.server.model.domain.User;
-import com.spy.server.service.UserService;
+
+import com.spy.copywritingaiagentserver.annotation.AuthCheck;
+import com.spy.copywritingaiagentserver.common.ErrorCode;
+import com.spy.copywritingaiagentserver.common.UserRoleEnum;
+import com.spy.copywritingaiagentserver.exception.BusinessException;
+import com.spy.copywritingaiagentserver.model.domain.User;
+import com.spy.copywritingaiagentserver.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;

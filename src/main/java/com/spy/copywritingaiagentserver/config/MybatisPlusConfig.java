@@ -1,4 +1,4 @@
-package com.spy.server.config;
+package com.spy.copywritingaiagentserver.config;
 
 import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
@@ -11,7 +11,10 @@ import org.springframework.context.annotation.Configuration;
  * MyBatisPlus配置
  */
 @Configuration
-@MapperScan("com.spy.server.mapper")
+@MapperScan(
+        basePackages = "com.spy.copywritingaiagentserver.mapper",
+        sqlSessionFactoryRef = "mysqlSqlSessionFactory"
+)
 public class MybatisPlusConfig {
 
     /**

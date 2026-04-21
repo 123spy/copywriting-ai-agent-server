@@ -1,4 +1,4 @@
-package com.spy.server.model.dto.user;
+package com.spy.copywritingaiagentserver.model.dto.user;
 
 import lombok.Data;
 
@@ -6,6 +6,7 @@ import java.io.Serializable;
 
 /**
  * 用户表
+ *
  * @TableName user
  */
 @Data

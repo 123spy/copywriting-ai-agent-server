@@ -1,4 +1,4 @@
-package com.spy.server.utils;
+package com.spy.copywritingaiagentserver.utils;
 
 public final class ShopGeoRedisKeyUtil {
 

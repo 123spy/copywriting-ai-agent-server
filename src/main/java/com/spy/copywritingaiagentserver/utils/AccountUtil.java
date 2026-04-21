@@ -1,4 +1,4 @@
-package com.spy.server.utils;
+package com.spy.copywritingaiagentserver.utils;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.DigestUtils;
@@ -7,7 +7,8 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.spy.server.constant.UserConstant.SALT;
+import static com.spy.copywritingaiagentserver.constant.UserConstant.SALT;
+
 
 public class AccountUtil {
 

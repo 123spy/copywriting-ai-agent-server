@@ -1,4 +1,4 @@
-package com.spy.server.common;
+package com.spy.copywritingaiagentserver.common;
 
 import lombok.Getter;
 import org.apache.commons.lang3.ObjectUtils;

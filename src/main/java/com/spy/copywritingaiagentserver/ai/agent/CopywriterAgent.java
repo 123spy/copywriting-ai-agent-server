@@ -15,14 +15,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class CopywriterAgent extends BasicAgent {
 
-
-    private final KnowledgeRetrievalService knowledgeRetrievalService;
-
-
-    public CopywriterAgent(ChatModel chatModel, ToolCallback[] allTools, KnowledgeRetrievalService knowledgeRetrievalService) {
+    public CopywriterAgent(ChatModel chatModel, ToolCallback[] allTools) {
         super(chatModel, allTools);
 
-        this.knowledgeRetrievalService = knowledgeRetrievalService;
     }
 
     private static final String SYSTEM_COPYWRITER_AGENT_PROMPT = """
@@ -54,26 +49,14 @@ public class CopywriterAgent extends BasicAgent {
         - cta：结尾行动引导，要求符合平台氛围，不要生硬推销
         """;
 
-    public CopywritingResult execute(RequirementParseResult requirementParseResult, ContentPlanResult contentPlanResult) {
+    public CopywritingResult execute(
+            RequirementParseResult requirementParseResult,
+            ContentPlanResult contentPlanResult,
+            String reference) {
         log.info("CopywriterAgent start: platform={}, topic={}, angle={}",
                 safe(requirementParseResult.getPlatform()),
                 safe(requirementParseResult.getTopic()),
                 safe(contentPlanResult.getContentAngle()));
-
-        String ragQuery = """
-        平台：%s
-        主题：%s
-        风格：%s
-        文案案例
-        标题模板
-        CTA模板
-        正文表达
-        """.formatted(
-                safe(requirementParseResult.getPlatform()),
-                safe(requirementParseResult.getTopic()),
-                safe(requirementParseResult.getTone())
-        );
-        String references = knowledgeRetrievalService.searchAsText(ragQuery, 6);
 
 
         String userMessage = """
@@ -107,7 +90,7 @@ CTA策略：%s
 3. 不要跳过工具直接写结果
 4. 最终只输出结构化文案结果
 """.formatted(
-                references,
+                reference,
                 safe(requirementParseResult.getPlatform()),
                 safe(requirementParseResult.getTopic()),
                 safe(requirementParseResult.getTargetAudience()),

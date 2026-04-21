@@ -63,7 +63,7 @@ public class AgentFlow {
             ContentPlanResult contentPlanResult = plannerAgent.execute(requirementParseResult);
 
             // 3. 文案生成
-            CopywritingResult copywritingResult = copywriterAgent.execute(requirementParseResult, contentPlanResult);
+            CopywritingResult copywritingResult = copywriterAgent.execute(requirementParseResult, contentPlanResult, null);
 
             // 4. 视觉提示词生成
             VisualPromptResult visualPromptResult = visualPromptAgent.execute(

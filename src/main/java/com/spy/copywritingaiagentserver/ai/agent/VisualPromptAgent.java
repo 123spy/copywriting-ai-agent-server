@@ -15,11 +15,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class VisualPromptAgent extends BasicAgent{
 
-    private final KnowledgeRetrievalService knowledgeRetrievalService;
 
-    public VisualPromptAgent(ChatModel chatModel, ToolCallback[] allTools, KnowledgeRetrievalService knowledgeRetrievalService) {
+    public VisualPromptAgent(ChatModel chatModel, ToolCallback[] allTools) {
         super(chatModel, allTools);
-        this.knowledgeRetrievalService =  knowledgeRetrievalService;
     }
 
     private static final String SYSTEM_VISUAL_PROMPT_AGENT_PROMPT = """
@@ -74,26 +72,9 @@ public class VisualPromptAgent extends BasicAgent{
                 safe(requirementParseResult.getPlatform()),
                 safe(requirementParseResult.getTopic()),
                 safe(copywritingResult.getTitle()));
-        String ragQuery = """
-        平台：%s
-        主题：%s
-        风格：%s
-        视觉模板
-        场景模板
-        构图模板
-        图片提示词
-        """.formatted(
-                safe(requirementParseResult.getPlatform()),
-                safe(requirementParseResult.getTopic()),
-                safe(requirementParseResult.getTone())
-        );
-        String references = knowledgeRetrievalService.searchAsText(ragQuery, 6);
 
         String userMessage = """
                 请根据下面的信息，生成结构化视觉提示结果：
-
-                【参考资料】
-                %s
                 
                 【用户需求】
                 平台：%s
@@ -120,7 +101,6 @@ public class VisualPromptAgent extends BasicAgent{
 
                 请根据参考资料输出结构化视觉提示结果。
                 """.formatted(
-                references,
                 safe(requirementParseResult.getPlatform()),
                 safe(requirementParseResult.getTopic()),
                 safe(requirementParseResult.getTargetAudience()),

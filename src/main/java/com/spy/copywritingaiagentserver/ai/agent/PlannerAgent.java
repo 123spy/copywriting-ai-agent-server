@@ -13,11 +13,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class PlannerAgent extends BasicAgent{
 
-    private final KnowledgeRetrievalService knowledgeRetrievalService;
-
-    public PlannerAgent(ChatModel chatModel, ToolCallback[] allTools, KnowledgeRetrievalService knowledgeRetrievalService) {
+    public PlannerAgent(ChatModel chatModel, ToolCallback[] allTools) {
         super(chatModel, allTools);
-        this.knowledgeRetrievalService = knowledgeRetrievalService;
     }
 
     private static final String SYSTEM_PLANNER_AGENT_PROMPT = """
@@ -60,28 +57,10 @@ public class PlannerAgent extends BasicAgent{
                 safe(requirementParseResult.getPlatform()),
                 safe(requirementParseResult.getTopic()),
                 safe(requirementParseResult.getTone()));
-        String ragQuery = """
-                平台：%s
-                主题：%s
-                风格：%s
-                内容策划
-                平台规则
-                文案结构
-                开头钩子
-                CTA
-                """.formatted(
-                safe(requirementParseResult.getPlatform()),
-                safe(requirementParseResult.getTopic()),
-                safe(requirementParseResult.getTone())
-        );
-        String references = knowledgeRetrievalService.searchAsText(ragQuery, 6);
 
         String userMessage = """
                 请根据下面的结构化需求，制定内容策划方案：
 
-                【参考资料】
-                %s
-                
                 【结构化需求】
                 平台：%s
                 主题：%s
@@ -93,7 +72,6 @@ public class PlannerAgent extends BasicAgent{
 
                 请根据参考资料输出结构化策划结果。
                 """.formatted(
-                references,
                 safe(requirementParseResult.getPlatform()),
                 safe(requirementParseResult.getTopic()),
                 safe(requirementParseResult.getTargetAudience()),

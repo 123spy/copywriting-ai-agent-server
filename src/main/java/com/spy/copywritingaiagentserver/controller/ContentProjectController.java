@@ -1,16 +1,24 @@
 package com.spy.copywritingaiagentserver.controller;
 
 import com.spy.copywritingaiagentserver.ai.AgentFlow;
-import com.spy.copywritingaiagentserver.ai.model.*;
+import com.spy.copywritingaiagentserver.ai.model.ContentPlanResult;
+import com.spy.copywritingaiagentserver.ai.model.CopywritingResult;
+import com.spy.copywritingaiagentserver.ai.model.FinalPostResult;
+import com.spy.copywritingaiagentserver.ai.model.RequirementParseResult;
+import com.spy.copywritingaiagentserver.ai.model.ReviewResult;
+import com.spy.copywritingaiagentserver.ai.model.UserRequirement;
+import com.spy.copywritingaiagentserver.ai.model.VisualPromptResult;
 import com.spy.copywritingaiagentserver.common.BaseResponse;
 import com.spy.copywritingaiagentserver.common.ErrorCode;
 import com.spy.copywritingaiagentserver.exception.BusinessException;
 import com.spy.copywritingaiagentserver.model.ProjectStatus;
 import com.spy.copywritingaiagentserver.model.domain.ContentProject;
 import com.spy.copywritingaiagentserver.model.domain.ContentResult;
+import com.spy.copywritingaiagentserver.model.domain.ProjectImage;
 import com.spy.copywritingaiagentserver.model.domain.User;
 import com.spy.copywritingaiagentserver.service.ContentProjectService;
 import com.spy.copywritingaiagentserver.service.ContentResultService;
+import com.spy.copywritingaiagentserver.service.ProjectImageService;
 import com.spy.copywritingaiagentserver.service.UserService;
 import com.spy.copywritingaiagentserver.utils.ResultUtil;
 import jakarta.annotation.Resource;
@@ -18,7 +26,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
 
@@ -39,81 +50,80 @@ public class ContentProjectController {
     @Resource
     private ContentResultService contentResultService;
 
+    @Resource
+    private ProjectImageService projectImageService;
+
     @PostMapping("/create")
     @Transactional(rollbackFor = Exception.class)
     public BaseResponse<FinalPostResult> create(@RequestBody UserRequirement userRequirement, HttpServletRequest request) {
         if (userRequirement == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "request body is null");
         }
 
         User loginUser = userService.getLoginUser(request);
 
-        // 校验参数
         String platform = userRequirement.getPlatform();
         if (StringUtils.isBlank(platform)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "平台为空");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "platform is blank");
         }
 
         String topic = userRequirement.getTopic();
         if (StringUtils.isBlank(topic)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "主题为空");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "topic is blank");
         }
 
         String audience = userRequirement.getAudience();
         if (StringUtils.isBlank(audience)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户群体为空");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "audience is blank");
         }
 
         String tone = userRequirement.getTone();
         if (StringUtils.isBlank(tone)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "风格为空");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "tone is blank");
         }
 
         String productInfo = userRequirement.getProductInfo();
         if (StringUtils.isBlank(productInfo)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "产品信息为空");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "product info is blank");
         }
 
         String requirement = userRequirement.getRequirement();
         if (StringUtils.isBlank(requirement)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户需求为空");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "requirement is blank");
         }
 
-        // 存一下数据库ContentProject
         ContentProject contentProject = new ContentProject();
         contentProject.setUserId(loginUser.getId());
-        contentProject.setProjectName(loginUser.getUserName() + "在" + platform + "的" + topic + "文案");
+        contentProject.setProjectName(loginUser.getUserName() + "-" + platform + "-" + topic + "-content");
         contentProject.setPlatform(platform);
         contentProject.setTopic(topic);
         contentProject.setAudience(audience);
         contentProject.setTone(tone);
-        // 初始不设置，这个会在后续生成的。
         contentProject.setNormalizedStyle(null);
         contentProject.setProductInfo(productInfo);
         contentProject.setRequirement(requirement);
-        // 默认设置为0
         contentProject.setStatus(ProjectStatus.RUNNING.getCode());
 
         boolean contentProjectSaveResult = contentProjectService.save(contentProject);
         if (!contentProjectSaveResult) {
-            throw new BusinessException(ErrorCode.OPERATION_ERROR, "项目创建失败");
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "create project failed");
         }
-        FinalPostResult finalPostResult = null;
+
+        FinalPostResult finalPostResult;
         try {
             finalPostResult = agentFlow.generate(userRequirement);
             if (finalPostResult == null) {
-                throw new BusinessException(ErrorCode.OPERATION_ERROR);
+                throw new BusinessException(ErrorCode.OPERATION_ERROR, "generation result is null");
             }
             contentProject.setStatus(ProjectStatus.SUCCESS.getCode());
             boolean contentProjectUpdateResult = contentProjectService.updateById(contentProject);
             if (!contentProjectUpdateResult) {
-                throw new BusinessException(ErrorCode.OPERATION_ERROR);
+                throw new BusinessException(ErrorCode.OPERATION_ERROR, "update project status failed");
             }
         } catch (Exception e) {
-            // 捕获异常
             contentProject.setStatus(ProjectStatus.FAILED.getCode());
-            boolean contentProjectUpdateResult = contentProjectService.updateById(contentProject);
-            throw new BusinessException(ErrorCode.OPERATION_ERROR, "文案生成失败");
+            contentProjectService.updateById(contentProject);
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "content generation failed");
         }
 
         RequirementParseResult requirementParseResult = finalPostResult.getRequirementParseResult();
@@ -123,32 +133,36 @@ public class ContentProjectController {
         String imageUrl = finalPostResult.getImageUrl();
         ReviewResult reviewResult = finalPostResult.getReviewResult();
 
-        // 存一下数据库ContentResult
         ContentResult contentResult = new ContentResult();
-//        contentResult.setId();
         contentResult.setProjectId(contentProject.getId());
-
-        // copywritingAgent实现这部分
         contentResult.setTitle(copywritingResult.getTitle());
         contentResult.setOpeningHook(copywritingResult.getOpeningHook());
         contentResult.setBody(copywritingResult.getBody());
         contentResult.setCta(copywritingResult.getCta());
-
-        // visualPromptAgent
         contentResult.setImagePrompt(visualPromptResult.getImagePrompt());
-
-        // reviewAgent
-        contentResult.setReviewPass(reviewResult.getPass() ? 1 : 0);
+        contentResult.setReviewPass(Boolean.TRUE.equals(reviewResult.getPass()) ? 1 : 0);
         contentResult.setTitleScore(BigDecimal.valueOf(reviewResult.getTitleScore()));
         contentResult.setBodyScore(BigDecimal.valueOf(reviewResult.getBodyScore()));
         contentResult.setImagePromptScore(BigDecimal.valueOf(reviewResult.getImagePromptScore()));
         contentResult.setOverallScore(BigDecimal.valueOf(reviewResult.getOverallScore()));
         contentResult.setReviewFeedback(reviewResult.getFeedback());
+
         boolean contentResultSaveResult = contentResultService.save(contentResult);
-        if(!contentResultSaveResult) {
-            throw new BusinessException(ErrorCode.OPERATION_ERROR, "结果保存失败");
+        if (!contentResultSaveResult) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "save content result failed");
         }
+
+        if (StringUtils.isNotBlank(imageUrl)) {
+            ProjectImage projectImage = new ProjectImage();
+            projectImage.setProjectId(contentProject.getId());
+            projectImage.setResultId(contentResult.getId());
+            projectImage.setImageUrl(imageUrl);
+            boolean projectImageSaveResult = projectImageService.save(projectImage);
+            if (!projectImageSaveResult) {
+                throw new BusinessException(ErrorCode.OPERATION_ERROR, "save project image failed");
+            }
+        }
+
         return ResultUtil.success(finalPostResult);
     }
-
 }

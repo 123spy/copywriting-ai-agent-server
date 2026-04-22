@@ -14,33 +14,13 @@ public class ReviewResult {
 
     private String feedback;
 
-    /**
-     * 是否需要重写标题
-     */
     private boolean rewriteTitle;
-
-    /**
-     * 是否需要重写 CTA
-     */
+    private boolean rewriteBody;
     private boolean rewriteCta;
-
-    /**
-     * 是否需要重写图片提示词
-     */
     private boolean rewriteImagePrompt;
 
-    /**
-     * 标题重写意见
-     */
     private String titleFeedback;
-
-    /**
-     * CTA 重写意见
-     */
+    private String bodyFeedback;
     private String ctaFeedback;
-
-    /**
-     * 图片提示词重写意见
-     */
     private String imagePromptFeedback;
 }

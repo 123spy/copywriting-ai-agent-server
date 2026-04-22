@@ -199,6 +199,26 @@
             <artifactId>hutool-all</artifactId>
             <version>5.8.8</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.qcloud</groupId>
+            <artifactId>cos_api</artifactId>
+            <version>5.6.89</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.squareup.okio</groupId>
+                    <artifactId>okio</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.squareup.okhttp</groupId>
+                    <artifactId>okhttp</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.squareup.okhttp</groupId>
+                    <artifactId>logging-interceptor</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
 
     <build>

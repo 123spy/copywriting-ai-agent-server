@@ -36,7 +36,7 @@ public class ReviseTitleNode {
                     requirementParseResult,
                     contentPlanResult,
                     copywritingResult,
-                    reviewResult.getFeedback()
+                    reviewResult.getTitleFeedback()
             );
         }
 

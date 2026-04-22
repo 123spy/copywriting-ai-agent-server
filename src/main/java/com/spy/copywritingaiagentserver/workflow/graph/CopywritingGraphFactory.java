@@ -11,7 +11,20 @@ import com.alibaba.cloud.ai.graph.exception.GraphStateException;
 import com.alibaba.cloud.ai.graph.state.strategy.AppendStrategy;
 import com.alibaba.cloud.ai.graph.state.strategy.ReplaceStrategy;
 import com.spy.copywritingaiagentserver.ai.model.ReviewResult;
-import com.spy.copywritingaiagentserver.workflow.node.*;
+import com.spy.copywritingaiagentserver.workflow.node.FinalizeNode;
+import com.spy.copywritingaiagentserver.workflow.node.GenerateDraftNode;
+import com.spy.copywritingaiagentserver.workflow.node.GenerateImageNode;
+import com.spy.copywritingaiagentserver.workflow.node.GenerateVisualPromptNode;
+import com.spy.copywritingaiagentserver.workflow.node.MergeRevisionNode;
+import com.spy.copywritingaiagentserver.workflow.node.ParseRequirementNode;
+import com.spy.copywritingaiagentserver.workflow.node.PlanNode;
+import com.spy.copywritingaiagentserver.workflow.node.RetrieveNode;
+import com.spy.copywritingaiagentserver.workflow.node.ReviewNode;
+import com.spy.copywritingaiagentserver.workflow.node.ReviseBodyNode;
+import com.spy.copywritingaiagentserver.workflow.node.ReviseCTANode;
+import com.spy.copywritingaiagentserver.workflow.node.ReviseDispatchNode;
+import com.spy.copywritingaiagentserver.workflow.node.ReviseTitleNode;
+import com.spy.copywritingaiagentserver.workflow.node.ReviseVisualPromptNode;
 import com.spy.copywritingaiagentserver.workflow.state.WorkflowStateKeys;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -23,16 +36,10 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/**
- * 主流程工厂
- */
 @Configuration
 @RequiredArgsConstructor
 public class CopywritingGraphFactory {
 
-    /**
-     * 下属全部节点
-     */
     private final ParseRequirementNode parseRequirementNode;
     private final PlanNode planNode;
     private final RetrieveNode retrieveNode;
@@ -42,20 +49,23 @@ public class CopywritingGraphFactory {
     private final ReviewNode reviewNode;
     private final FinalizeNode finalizeNode;
 
-    /**
-     * 创建线程
-     * @return
-     */
+    private final ReviseDispatchNode reviseDispatchNode;
+    private final ReviseTitleNode reviseTitleNode;
+    private final ReviseBodyNode reviseBodyNode;
+    private final ReviseCTANode reviseCTANode;
+    private final ReviseVisualPromptNode reviseVisualPromptNode;
+    private final MergeRevisionNode mergeRevisionNode;
+
     @Bean
     public ExecutorService workflowExecutor() {
         return Executors.newFixedThreadPool(4);
     }
 
-    /**
-     * 将节点，绑定到执行器上
-     * @param workflowExecutor
-     * @return
-     */
+    @Bean
+    public ExecutorService revisionExecutor() {
+        return Executors.newFixedThreadPool(4);
+    }
+
     @Bean
     public RunnableConfig mainGraphRunnableConfig(
             @Qualifier("workflowExecutor") ExecutorService workflowExecutor,
@@ -65,27 +75,17 @@ public class CopywritingGraphFactory {
                 .addParallelNodeExecutor("planNode", workflowExecutor)
                 .addParallelNodeExecutor("retrieveNode", workflowExecutor)
                 .addParallelNodeExecutor("reviseTitle", revisionExecutor)
+                .addParallelNodeExecutor("reviseBody", revisionExecutor)
                 .addParallelNodeExecutor("reviseCTA", revisionExecutor)
                 .addParallelNodeExecutor("reviseVisualPrompt", revisionExecutor)
                 .build();
-    }
-
-    // 子图
-    private final ReviseDispatchNode reviseDispatchNode;
-    private final ReviseTitleNode reviseTitleNode;
-    private final ReviseCTANode reviseCTANode;
-    private final ReviseVisualPromptNode reviseVisualPromptNode;
-    private final MergeRevisionNode mergeRevisionNode;
-
-    @Bean
-    public ExecutorService revisionExecutor() {
-        return Executors.newFixedThreadPool(3);
     }
 
     @Bean
     public RunnableConfig revisionRunnableConfig(@Qualifier("revisionExecutor") ExecutorService revisionExecutor) {
         return RunnableConfig.builder()
                 .addParallelNodeExecutor("reviseTitle", revisionExecutor)
+                .addParallelNodeExecutor("reviseBody", revisionExecutor)
                 .addParallelNodeExecutor("reviseCTA", revisionExecutor)
                 .addParallelNodeExecutor("reviseVisualPrompt", revisionExecutor)
                 .build();
@@ -102,13 +102,12 @@ public class CopywritingGraphFactory {
                 .addNode("generateImage", AsyncNodeAction.node_async(generateImageNode::execute))
                 .addNode("review", AsyncNodeAction.node_async(reviewNode::execute))
                 .addNode("finalize", AsyncNodeAction.node_async(finalizeNode::execute))
-
                 .addNode("reviseDispatch", AsyncNodeAction.node_async(reviseDispatchNode::execute))
                 .addNode("reviseTitle", AsyncNodeAction.node_async(reviseTitleNode::execute))
+                .addNode("reviseBody", AsyncNodeAction.node_async(reviseBodyNode::execute))
                 .addNode("reviseCTA", AsyncNodeAction.node_async(reviseCTANode::execute))
                 .addNode("reviseVisualPrompt", AsyncNodeAction.node_async(reviseVisualPromptNode::execute))
                 .addNode("mergeRevision", AsyncNodeAction.node_async(mergeRevisionNode::execute))
-
                 .addEdge(StateGraph.START, "parseRequirement")
                 .addEdge("parseRequirement", "planNode")
                 .addEdge("parseRequirement", "retrieveNode")
@@ -126,26 +125,22 @@ public class CopywritingGraphFactory {
                         )
                 )
                 .addEdge("reviseDispatch", "reviseTitle")
+                .addEdge("reviseDispatch", "reviseBody")
                 .addEdge("reviseDispatch", "reviseCTA")
                 .addEdge("reviseDispatch", "reviseVisualPrompt")
-
                 .addEdge("reviseTitle", "mergeRevision")
+                .addEdge("reviseBody", "mergeRevision")
                 .addEdge("reviseCTA", "mergeRevision")
                 .addEdge("reviseVisualPrompt", "mergeRevision")
-
                 .addEdge("mergeRevision", "review")
-
-
                 .addEdge("finalize", StateGraph.END)
                 .compile();
-
     }
 
     private Map<String, KeyStrategy> keyStrategies() {
         Map<String, KeyStrategy> strategies = new HashMap<>();
 
         strategies.put(WorkflowStateKeys.TRACE_LOGS, new AppendStrategy());
-
         strategies.put(WorkflowStateKeys.REQUIREMENT_PARSE_RESULT, new ReplaceStrategy());
         strategies.put(WorkflowStateKeys.CONTENT_PLAN_RESULT, new ReplaceStrategy());
         strategies.put(WorkflowStateKeys.RAG_REFERENCE, new ReplaceStrategy());
@@ -154,11 +149,10 @@ public class CopywritingGraphFactory {
         strategies.put(WorkflowStateKeys.IMAGE_URL, new ReplaceStrategy());
         strategies.put(WorkflowStateKeys.REVIEW_RESULT, new ReplaceStrategy());
         strategies.put(WorkflowStateKeys.FINAL_RESULT, new ReplaceStrategy());
-
         strategies.put(WorkflowStateKeys.TITLE_REWRITTEN, new ReplaceStrategy());
+        strategies.put(WorkflowStateKeys.BODY_REWRITTEN, new ReplaceStrategy());
         strategies.put(WorkflowStateKeys.CTA_REWRITTEN, new ReplaceStrategy());
         strategies.put(WorkflowStateKeys.IMAGE_PROMPT_REWRITTEN, new ReplaceStrategy());
-        // 当前步数，设置为覆盖
         strategies.put(WorkflowStateKeys.CURRENT_RETRY_COUNT, new ReplaceStrategy());
 
         return strategies;
@@ -171,19 +165,17 @@ public class CopywritingGraphFactory {
                 return "revise";
             }
 
-            Integer current_retry_count = (Integer) state.value(WorkflowStateKeys.CURRENT_RETRY_COUNT).orElse(null);
-            if(current_retry_count == null) {
+            Integer currentRetryCount =
+                    (Integer) state.value(WorkflowStateKeys.CURRENT_RETRY_COUNT).orElse(null);
+            if (currentRetryCount == null) {
                 return "pass";
             }
 
-            var reviewResult = (ReviewResult) reviewResultObj;
-            if(Boolean.TRUE.equals(reviewResult.getPass())) {
+            ReviewResult reviewResult = (ReviewResult) reviewResultObj;
+            if (Boolean.TRUE.equals(reviewResult.getPass())) {
                 return "pass";
-            }else {
-                if(current_retry_count <= 3) return "revise";
-                else return "pass";
             }
-//            return Boolean.TRUE.equals(reviewResult.getPass()) ? "pass" : "revise";
+            return currentRetryCount <= 3 ? "revise" : "pass";
         };
     }
 }

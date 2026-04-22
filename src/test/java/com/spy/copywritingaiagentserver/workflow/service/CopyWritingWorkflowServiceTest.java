@@ -1,6 +1,7 @@
 package com.spy.copywritingaiagentserver.workflow.service;
 
 import com.spy.copywritingaiagentserver.ai.model.UserRequirement;
+import com.spy.copywritingaiagentserver.ai.model.VisualPromptResult;
 import com.spy.copywritingaiagentserver.workflow.state.WorkflowStateKeys;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +32,9 @@ class CopyWritingWorkflowServiceTest {
         HashMap<String, Object> initState = new HashMap<>();
         initState.put(WorkflowStateKeys.USER_REQUIREMENT, userRequirement);
         Map<String, Object> result = copyWritingWorkflowService.run(initState);
+        VisualPromptResult visualPromptResult = (VisualPromptResult) result.get("visualPromptResult");
 
-        System.out.println(result);
+
+        System.out.println(visualPromptResult);
     }
 }

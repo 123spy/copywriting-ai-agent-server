@@ -6,57 +6,60 @@ import com.spy.copywritingaiagentserver.ai.model.RequirementParseResult;
 import com.spy.copywritingaiagentserver.ai.model.ReviewResult;
 import com.spy.copywritingaiagentserver.ai.model.VisualPromptResult;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-public class ReviewerAgent extends BasicAgent{
+public class ReviewerAgent extends BasicAgent {
+
+    private static final String SYSTEM_REVIEWER_AGENT_PROMPT = """
+            你是一名严格的内容审核员，职责是发现问题，不是鼓励或润色。
+
+            审核原则：
+            1. 先找问题，再评分，最后给结论。
+            2. 对真实性、可验证性、平台适配度、图文一致性和产品相关性都要严格。
+            3. 用户原始输入中已经给出的品牌名、主题设定、卖点描述，可以视为任务输入，不要直接判定为模型虚构。
+            4. 只有模型自行新增、且输入中没有给出、也没有可靠依据支持的信息，才判定为虚构或不实风险。
+            5. 对图片提示词的审核重点，不只是“文案一致”，还包括：是否像真实产品图、是否突出产品主体、是否容易生成成泛手机模板、是否明显偏成老旧 iPhone/老旧安卓外观。
+
+            评分维度：
+            - titleScore：标题吸引力、平台语感、可信度，范围 0 到 10
+            - bodyScore：正文真实性、结构清晰度、表达稳健性，范围 0 到 10
+            - imagePromptScore：视觉提示词与文案一致性、产品相关性、平台适配度、可执行性，范围 0 到 10
+            - overallScore：整体分数，范围 0 到 10
+
+            评分参考：
+            - 9-10：成熟可用，几乎无明显短板
+            - 7-8.9：整体较好，但仍有优化点
+            - 5-6.9：可读但问题明显，不能直接通过
+            - 0-4.9：存在明显硬伤或方向错误
+
+            pass 的硬规则：
+            1. 只要 titleScore、bodyScore、imagePromptScore 任一项小于 7.0，则 pass=false。
+            2. 只有三项全部大于等于 7.0 且 overallScore 大于等于 7.0 时，才允许 pass=true。
+            3. 只要还存在明显真实性风险、合规风险、正文原则性问题、图片明显不像目标产品、平台视觉明显不适配，pass 仍然必须是 false。
+            4. 如果任一 rewrite 标记为 true，则 pass 必须是 false。
+
+            局部重写判断原则：
+            1. 标题有问题，置 rewriteTitle=true。
+            2. 正文存在事实风险、不可验证强结论、空泛对比、结构性硬伤时，置 rewriteBody=true。
+            3. CTA 存在导购风险、过硬推销、行动指令不自然时，置 rewriteCta=true。
+            4. 图片提示词与文案不一致、产品主体不突出、容易生成成泛手机、明显像老旧手机、平台不匹配时，置 rewriteImagePrompt=true。
+
+            输出要求：
+            1. 输出 titleScore、bodyScore、imagePromptScore、overallScore、pass。
+            2. 输出一段总 feedback，必须具体、直接、可执行。
+            3. 输出 rewriteTitle、rewriteBody、rewriteCta、rewriteImagePrompt 四个布尔字段。
+            4. 输出 titleFeedback、bodyFeedback、ctaFeedback、imagePromptFeedback 四个定向修改建议。
+            5. 如果某字段无需修改，对应 feedback 可以为空字符串，对应 rewrite 设为 false。
+            6. 只输出结构化结果，不要额外解释。
+            """;
 
     public ReviewerAgent(ChatModel chatModel, ToolCallback[] allTools) {
         super(chatModel, allTools);
     }
-
-    private static final String SYSTEM_REVIEWER_AGENT_PROMPT = """
-        你是一个“严格内容审核员”，不是鼓励型评委，也不是夸奖型顾问。
-        
-        你的职责不是润色赞美，而是尽可能发现文案和视觉提示词中的问题，并做严格评分。
-        
-        你必须遵守以下规则：
-        1. 先找问题，再打分，最后给结论。
-        2. 不要因为整体流畅就给高分。
-        3. 只有在某一项明显优秀、几乎没有改进空间时，才允许给 1.8 分以上。
-        4. 只要存在明显问题，就必须扣分，不要做“可接受范围内不扣分”的宽松处理。
-        5. 对品牌识别弱、平台适配不足、CTA偏硬或偏弱、视觉与文案主题不一致等问题，必须明确指出。
-        6. 如果存在任何一项明显短板，即使整体不错，也不能直接判为高分通过。
-        
-        请从以下 5 个维度分别评分，每项 0~2 分：
-        - titleScore：标题吸引力与平台适配度
-        - hookScore：开头钩子的代入感与抓人程度
-        - bodyScore：正文结构、卖点表达、真实感
-        - ctaScore：CTA自然度与互动感
-        - visualScore：视觉提示词与文案主题、平台风格的一致性
-        
-        评分标准：
-        - 0.0~0.9：明显不合格
-        - 1.0~1.4：有明显缺陷
-        - 1.5~1.7：合格但仍有改进空间
-        - 1.8~2.0：非常优秀，只有在几乎无明显缺点时才可给出
-        
-        输出要求：
-        1. 输出每项分数
-        2. 输出 overallScore（总分，满分10）
-        3. 输出 pass（是否通过）
-        4. 输出 problems：明确列出至少 1~5 个问题；如果没有明显问题，也要写出最可能影响效果的薄弱点
-        5. 输出 feedback：简洁、具体、可执行
-        
-        通过规则：
-        - 只要任一单项低于 1.5，则 pass=false
-        - 只要 overallScore 低于 8.8，则 pass=false
-        - 只有五项都比较强，且没有明显短板时，才允许 pass=true
-        """;
 
     public ReviewResult execute(
             RequirementParseResult requirementParseResult,
@@ -71,7 +74,7 @@ public class ReviewerAgent extends BasicAgent{
                 imageUrl != null && !imageUrl.isBlank());
 
         String userMessage = """
-                请对下面这组内容生成结果进行评审：
+                请审核下面这组生成结果。
 
                 【用户需求】
                 平台：%s
@@ -104,8 +107,6 @@ public class ReviewerAgent extends BasicAgent{
 
                 【图片结果】
                 图片地址：%s
-
-                请输出结构化评审结果。
                 """.formatted(
                 safe(requirementParseResult.getPlatform()),
                 safe(requirementParseResult.getTopic()),
@@ -131,8 +132,6 @@ public class ReviewerAgent extends BasicAgent{
                 safe(imageUrl)
         );
 
-//        log.info("ReviewerAgent 输入: {}", userMessage);
-
         ReviewResult reviewResult = this.getChatClient()
                 .prompt()
                 .system(SYSTEM_REVIEWER_AGENT_PROMPT)
@@ -140,13 +139,62 @@ public class ReviewerAgent extends BasicAgent{
                 .call()
                 .entity(ReviewResult.class);
 
-        log.info("ReviewerAgent done: pass={}, overallScore={}",
+        normalizeReviewResult(reviewResult);
+
+        log.info("ReviewerAgent done: pass={}, titleScore={}, bodyScore={}, imagePromptScore={}, overallScore={}",
                 reviewResult.getPass(),
+                reviewResult.getTitleScore(),
+                reviewResult.getBodyScore(),
+                reviewResult.getImagePromptScore(),
                 reviewResult.getOverallScore());
 
-//        log.info("ReviewerAgent 输出: {}", reviewResult);
-
         return reviewResult;
+    }
+
+    private void normalizeReviewResult(ReviewResult reviewResult) {
+        if (reviewResult == null) {
+            return;
+        }
+
+        double titleScore = clampScore(reviewResult.getTitleScore());
+        double bodyScore = clampScore(reviewResult.getBodyScore());
+        double imagePromptScore = clampScore(reviewResult.getImagePromptScore());
+        double overallScore = roundScore(titleScore * 0.2 + bodyScore * 0.45 + imagePromptScore * 0.35);
+
+        reviewResult.setTitleScore(titleScore);
+        reviewResult.setBodyScore(bodyScore);
+        reviewResult.setImagePromptScore(imagePromptScore);
+        reviewResult.setOverallScore(overallScore);
+
+        boolean hasRewrite =
+                reviewResult.isRewriteTitle()
+                        || reviewResult.isRewriteBody()
+                        || reviewResult.isRewriteCta()
+                        || reviewResult.isRewriteImagePrompt();
+        boolean hardPass =
+                titleScore >= 7.0
+                        && bodyScore >= 7.0
+                        && imagePromptScore >= 7.0
+                        && overallScore >= 7.0
+                        && !hasRewrite;
+        reviewResult.setPass(Boolean.TRUE.equals(reviewResult.getPass()) && hardPass);
+    }
+
+    private double clampScore(double score) {
+        if (Double.isNaN(score) || Double.isInfinite(score)) {
+            return 0.0;
+        }
+        if (score < 0) {
+            return 0.0;
+        }
+        if (score > 10) {
+            return 10.0;
+        }
+        return roundScore(score);
+    }
+
+    private double roundScore(double score) {
+        return Math.round(score * 10.0) / 10.0;
     }
 
     private String safe(String value) {

@@ -15,7 +15,7 @@ import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
-public class ReviseCTANode {
+public class ReviseBodyNode {
 
     private final CopywriterAgent copywriterAgent;
     private final WorkflowStateReader reader;
@@ -30,16 +30,16 @@ public class ReviseCTANode {
         ReviewResult reviewResult =
                 reader.get(state, WorkflowStateKeys.REVIEW_RESULT, ReviewResult.class);
 
-        String newCta = copywritingResult.getCta();
-        if(reviewResult.isRewriteCta()) {
-            newCta = copywriterAgent.rewriteCta(
+        String newBody = copywritingResult.getBody();
+        if (reviewResult.isRewriteBody()) {
+            newBody = copywriterAgent.rewriteBody(
                     requirementParseResult,
                     contentPlanResult,
                     copywritingResult,
-                    reviewResult.getCtaFeedback()
+                    reviewResult.getBodyFeedback()
             );
         }
 
-        return Map.of(WorkflowStateKeys.CTA_REWRITTEN, newCta);
+        return Map.of(WorkflowStateKeys.BODY_REWRITTEN, newBody);
     }
 }

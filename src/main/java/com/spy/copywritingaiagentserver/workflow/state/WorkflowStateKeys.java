@@ -18,6 +18,7 @@ public final class WorkflowStateKeys {
     public static final String RAG_REFERENCE = "ragReference";
 
     public static final String TITLE_REWRITTEN = "titleRewritten";
+    public static final String BODY_REWRITTEN = "bodyRewritten";
     public static final String CTA_REWRITTEN = "ctaRewritten";
     public static final String IMAGE_PROMPT_REWRITTEN = "imagePromptRewritten";
 

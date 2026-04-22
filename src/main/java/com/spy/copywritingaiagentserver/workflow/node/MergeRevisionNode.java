@@ -27,6 +27,9 @@ public class MergeRevisionNode {
         String rewrittenTitle =
                 reader.getString(state, WorkflowStateKeys.TITLE_REWRITTEN);
 
+        String rewrittenBody =
+                reader.getString(state, WorkflowStateKeys.BODY_REWRITTEN);
+
         String rewrittenCta =
                 reader.getString(state, WorkflowStateKeys.CTA_REWRITTEN);
 
@@ -36,7 +39,7 @@ public class MergeRevisionNode {
         CopywritingResult mergedCopywritingResult = CopywritingResult.builder()
                 .title(isNotBlank(rewrittenTitle) ? rewrittenTitle : originalCopywritingResult.getTitle())
                 .openingHook(originalCopywritingResult.getOpeningHook())
-                .body(originalCopywritingResult.getBody())
+                .body(isNotBlank(rewrittenBody) ? rewrittenBody : originalCopywritingResult.getBody())
                 .cta(isNotBlank(rewrittenCta) ? rewrittenCta : originalCopywritingResult.getCta())
                 .build();
 

@@ -47,7 +47,7 @@ public class ReviseVisualPromptNode {
                     contentPlanResult,
                     copywritingResult,
                     visualPromptResult,
-                    reviewResult.getFeedback()
+                    reviewResult.getImagePromptFeedback()
             );
 
             VisualPromptResult newVisualPromptResult = new VisualPromptResult();

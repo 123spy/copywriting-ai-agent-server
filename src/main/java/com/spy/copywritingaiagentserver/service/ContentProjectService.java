@@ -1,13 +1,18 @@
 package com.spy.copywritingaiagentserver.service;
 
-import com.spy.copywritingaiagentserver.model.domain.ContentProject;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.spy.copywritingaiagentserver.model.domain.ContentProject;
+import com.spy.copywritingaiagentserver.model.dto.contentproject.ContentProjectQueryRequest;
+import com.spy.copywritingaiagentserver.model.dto.contentproject.ContentProjectUpdateRequest;
 
-/**
-* @author OUC
-* @description 针对表【content_project(内容创作项目表)】的数据库操作Service
-* @createDate 2026-04-20 13:47:34
-*/
 public interface ContentProjectService extends IService<ContentProject> {
 
+    Wrapper<ContentProject> getQueryWrapper(ContentProjectQueryRequest contentProjectQueryRequest, Long userId);
+
+    ContentProject getOwnedProject(Long projectId, Long userId);
+
+    Boolean updateProject(ContentProjectUpdateRequest contentProjectUpdateRequest, Long userId);
+
+    Boolean deleteProject(Long projectId, Long userId);
 }

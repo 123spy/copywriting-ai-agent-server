@@ -17,33 +17,33 @@ public class CopywriterAgent extends BasicAgent {
     }
 
     private static final String SYSTEM_COPYWRITER_AGENT_PROMPT = """
-        你是一名内容文案写作专家。
-        你的任务是根据用户需求、内容策划方案和参考资料，生成最终可发布的文案。
+            You are a senior copywriting specialist.
+            Your job is to produce publishable copy based on the user requirement, content plan, and references.
 
-        工具使用规则：
-        1. 任务涉及品牌、产品、竞品、市场信息、平台表达方式时，优先调用网页搜索工具。
-        2. 如果搜索结果中出现明显相关的网页链接，继续调用网页读取工具获取正文后再写作。
-        3. 本地参考资料只能作为补充，不能在未搜索网页时直接作为唯一依据。
-        4. 如果没有调用网页搜索工具，不要直接输出最终文案。
-        5. 如果搜索不到可靠资料，可以说明未检索到可靠网页资料，但不要编造事实。
+            Tool usage rules:
+            1. When the task involves brand, product, competitor, market, or platform expression details, use web search first.
+            2. If search results contain clearly relevant pages, continue by reading those pages before writing.
+            3. Local references can supplement the answer, but they should not be the only basis when web search is needed.
+            4. If web search is not used when needed, do not output the final copy directly.
+            5. If reliable sources cannot be found, say so implicitly through cautious writing and do not invent facts.
 
-        写作规则：
-        1. 严格基于输入写作，不要偏题。
-        2. 用户原始输入中已经给出的品牌名、主题设定、卖点表述可以保留，不要擅自改成别的品牌或别的主题。
-        3. 不能自行补充输入中没有给出、且网页资料也没有支持的具体参数、芯片、系统版本、实验数据、机构背书、用户评价。
-        4. 如果某个卖点只有抽象描述，不要把它扩写成看似专业但不可验证的硬参数。
-        5. 如果没有明确测试条件，不要写成“实测证明”“稳定保持”“后台保活X个应用”这类强结论。
-        6. 如果要做对比，必须有明确锚点；没有明确对象时，不要写模糊竞品对比。
-        7. 文案整体要自然、真实、克制，避免堆砌参数和过度推销。
-        8. 标题、开头、正文、CTA 要前后一致。
-        9. 不要输出图片提示词或策划建议，只输出文案成品。
+            Writing rules:
+            1. Stay strictly aligned with the input requirement.
+            2. Keep the brand name, topic setting, and selling points when they are already provided by the user.
+            3. Do not invent unsupported specs, chips, versions, benchmarks, endorsements, or reviews.
+            4. If a selling point is abstract, do not expand it into fake technical claims.
+            5. If there is no clear test condition, avoid claims such as proven stability or measured results.
+            6. If making comparisons, use clear comparison targets. Otherwise avoid vague competitor comparison.
+            7. Keep the copy natural, credible, and restrained.
+            8. Title, opening hook, body, and CTA must stay consistent.
+            9. Output copy only. Do not output image prompt or planning notes.
 
-        输出字段：
-        - title
-        - openingHook
-        - body
-        - cta
-        """;
+            Output fields:
+            - title
+            - openingHook
+            - body
+            - cta
+            """;
 
     public CopywritingResult execute(
             RequirementParseResult requirementParseResult,
@@ -55,35 +55,35 @@ public class CopywriterAgent extends BasicAgent {
                 safe(contentPlanResult.getContentAngle()));
 
         String userMessage = """
-                请先使用网页搜索工具检索与主题、品牌、产品、平台表达相关的网页资料。
-                如果搜索结果中有明显相关链接，请继续读取网页正文，再根据下面信息生成最终文案。
+                Please search the web first for reliable information related to the topic, brand, product, and platform expression.
+                If the search returns clearly relevant pages, read them before generating the final copy.
 
-                【参考资料】
+                [References]
                 %s
 
-                【用户需求】
-                平台：%s
-                主题：%s
-                目标人群：%s
-                风格：%s
-                核心卖点：%s
-                内容目标：%s
-                额外限制：%s
+                [User Requirement]
+                Platform: %s
+                Topic: %s
+                Target audience: %s
+                Tone: %s
+                Selling points: %s
+                Content goal: %s
+                Constraints: %s
 
-                【内容策划方案】
-                内容角度：%s
-                开头钩子策略：%s
-                核心表达点：%s
-                内容结构建议：%s
-                CTA策略：%s
-                视觉风格建议：%s
+                [Content Plan]
+                Content angle: %s
+                Hook strategy: %s
+                Core points: %s
+                Structure advice: %s
+                CTA strategy: %s
+                Visual style advice: %s
 
-                写作要求：
-                1. 用户输入中已有的设定可以保留，但不要自行扩写成无法验证的硬事实。
-                2. 如果资料不足，请写得更稳妥、更像真实体验，不要硬凑参数。
-                3. 没有明确测试条件时，不要写“实测续航两天”“后台保活三个应用”这类强结论。
-                4. 没有明确对比对象时，不要写 A 机/B 机/C 机式模糊对比。
-                5. 最终只输出结构化文案结果，不要额外解释。
+                Writing requirements:
+                1. Preserve user-provided settings, but do not expand them into unverifiable claims.
+                2. If information is limited, write in a safer and more experience-based tone.
+                3. Without clear test conditions, do not output hard conclusions or measured claims.
+                4. Without clear comparison targets, do not write vague A vs B vs C comparisons.
+                5. Return only the structured copy result and nothing else.
                 """.formatted(
                 safe(reference),
                 safe(requirementParseResult.getPlatform()),
@@ -123,32 +123,32 @@ public class CopywriterAgent extends BasicAgent {
             String feedback
     ) {
         String userMessage = """
-                请只重写标题，不要改正文和 CTA。
+                Rewrite only the title. Do not change the body or CTA.
 
-                【用户需求】
-                平台：%s
-                主题：%s
-                目标人群：%s
-                风格：%s
+                [User Requirement]
+                Platform: %s
+                Topic: %s
+                Target audience: %s
+                Tone: %s
 
-                【内容策划】
-                内容角度：%s
-                开头钩子策略：%s
+                [Content Plan]
+                Content angle: %s
+                Hook strategy: %s
 
-                【当前文案】
-                当前标题：%s
-                开头钩子：%s
-                正文：%s
-                CTA：%s
+                [Current Copy]
+                Current title: %s
+                Opening hook: %s
+                Body: %s
+                CTA: %s
 
-                【标题修改意见】
+                [Feedback]
                 %s
 
-                要求：
-                1. 只输出新的标题。
-                2. 保持和正文主题一致。
-                3. 更符合平台语感和可信表达。
-                4. 不要输出解释。
+                Requirements:
+                1. Output only the new title.
+                2. Keep it aligned with the current body.
+                3. Make it more suitable for the platform and more credible.
+                4. Do not add explanations.
                 """.formatted(
                 safe(requirementParseResult.getPlatform()),
                 safe(requirementParseResult.getTopic()),
@@ -176,31 +176,31 @@ public class CopywriterAgent extends BasicAgent {
             String feedback
     ) {
         String userMessage = """
-                请只重写 CTA，不要改标题和正文。
+                Rewrite only the CTA. Do not change the title or body.
 
-                【用户需求】
-                平台：%s
-                主题：%s
-                目标人群：%s
-                风格：%s
+                [User Requirement]
+                Platform: %s
+                Topic: %s
+                Target audience: %s
+                Tone: %s
 
-                【内容策划】
-                CTA策略：%s
+                [Content Plan]
+                CTA strategy: %s
 
-                【当前文案】
-                标题：%s
-                正文：%s
-                当前 CTA：%s
+                [Current Copy]
+                Title: %s
+                Body: %s
+                Current CTA: %s
 
-                【CTA 修改意见】
+                [Feedback]
                 %s
 
-                要求：
-                1. 只输出新的 CTA。
-                2. CTA 要自然、克制，不要过度推销。
-                3. 避免形成未授权导购承诺或强销售指令。
-                4. 更符合平台互动氛围。
-                5. 不要输出解释。
+                Requirements:
+                1. Output only the new CTA.
+                2. Keep the CTA natural and restrained.
+                3. Avoid unsupported promises or aggressive selling.
+                4. Make it more suitable for platform interaction.
+                5. Do not add explanations.
                 """.formatted(
                 safe(requirementParseResult.getPlatform()),
                 safe(requirementParseResult.getTopic()),
@@ -226,40 +226,40 @@ public class CopywriterAgent extends BasicAgent {
             String feedback
     ) {
         String userMessage = """
-                请只重写正文 body，不要改标题、开头钩子和 CTA。
+                Rewrite only the body. Do not change the title, opening hook, or CTA.
 
-                【用户需求】
-                平台：%s
-                主题：%s
-                目标人群：%s
-                风格：%s
-                核心卖点：%s
-                内容目标：%s
-                额外限制：%s
+                [User Requirement]
+                Platform: %s
+                Topic: %s
+                Target audience: %s
+                Tone: %s
+                Selling points: %s
+                Content goal: %s
+                Constraints: %s
 
-                【内容策划】
-                内容角度：%s
-                开头钩子策略：%s
-                核心表达点：%s
-                内容结构建议：%s
+                [Content Plan]
+                Content angle: %s
+                Hook strategy: %s
+                Core points: %s
+                Structure advice: %s
 
-                【当前文案】
-                标题：%s
-                开头钩子：%s
-                当前正文：%s
-                CTA：%s
+                [Current Copy]
+                Title: %s
+                Opening hook: %s
+                Current body: %s
+                CTA: %s
 
-                【正文修改意见】
+                [Feedback]
                 %s
 
-                重写要求：
-                1. 只输出新的 body。
-                2. 优先删除或替换评审明确指出的风险内容，不要先做泛泛润色。
-                3. 对于没有依据支持的硬参数、具体实验数据、系统版本、芯片型号、机构背书，一律不要自行补充。
-                4. 如果某句结论缺少测试条件，就把它改弱、改稳妥，写成真实体验感受，而不是实验性结论。
-                5. 如果没有明确竞品锚点，不要保留模糊对比。
-                6. 尽量保留原结构和可用信息，做局部修正，不要整段推翻。
-                7. 不要输出解释。
+                Requirements:
+                1. Output only the new body.
+                2. Fix risky content first instead of doing broad stylistic rewrites.
+                3. Do not invent specs, benchmarks, versions, chips, or endorsements.
+                4. If evidence is weak, soften the claim and write it as a realistic experience.
+                5. If there is no clear comparison target, remove vague comparison content.
+                6. Preserve as much useful structure as possible.
+                7. Do not add explanations.
                 """.formatted(
                 safe(requirementParseResult.getPlatform()),
                 safe(requirementParseResult.getTopic()),
